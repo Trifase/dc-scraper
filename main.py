@@ -9,15 +9,13 @@ import config
 BOT_TOKEN = config.BOT_TOKEN
 DESTINATION_CHAT = config.DESTINATION_CHAT
 
-# How many minutes to look back for new threads.
-MINUTES = 60
-# Set SINGLE_POST to True if you want a single post - will disable images.
-SINGLE_POST = False
-# Set IMAGES to True if you want to send images. If SINGLE_POST is True, this will be ignored.
-IMAGES = False
+MINUTES = config.MINUTES
+SINGLE_POST = config.SINGLE_POST
+IMAGES = config.IMAGES
+BOARDS = config.BOARDS
 
 async def main():
-    async def get_last_threads_from_board(board):
+    async def get_last_threads_from_board():
         async with httpx.AsyncClient() as client:
             response = await client.get(f'https://www.diochan.com/{board}/catalog.json')
             response.raise_for_status()
@@ -30,19 +28,20 @@ async def main():
     not_before = now - delta_timestamp
     threads = []
 
-    for page in diochan:
-        for thread in page['threads']:
-            if thread['time'] > not_before:
-                t = {
-                    'board': 'b',
-                    'thread': thread['no'],
-                    'time': thread['time'],
-                    'title': thread.get('sub'),
-                    'text': thread['com'],
-                    'image_url': f"https://www.diochan.com/{thread['board']}/src/{thread['tim']}{thread['ext']}",
-                    'thread_url' : f"https://www.diochan.com/{thread['board']}/res/{thread['no']}.html"
-                }
-                threads.append(t)
+    for board in BOARDS:
+        for page in diochan:
+            for thread in page['threads']:
+                if thread['time'] > not_before:
+                    t = {
+                        'board': 'b',
+                        'thread': thread['no'],
+                        'time': thread['time'],
+                        'title': thread.get('sub'),
+                        'text': thread['com'],
+                        'image_url': f"https://www.diochan.com/{thread['board']}/src/{thread['tim']}{thread['ext']}",
+                        'thread_url' : f"https://www.diochan.com/{thread['board']}/res/{thread['no']}.html"
+                    }
+                    threads.append(t)
     
 
     bot = Bot(token=config.BOT_TOKEN)
