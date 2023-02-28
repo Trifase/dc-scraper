@@ -53,7 +53,7 @@ async def main():
         message = ''
         for thread in threads:
             message += f"{thread['thread_url']}\n{thread['text']}\n\n"
-        await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML')
+        await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
     
     else:
         for thread in threads:
