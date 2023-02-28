@@ -5,11 +5,15 @@ from telegram import Bot
 
 import config
 
-MINUTES = 60
+
 BOT_TOKEN = config.BOT_TOKEN
 DESTINATION_CHAT = config.DESTINATION_CHAT
 
+# How many minutes to look back for new threads.
+MINUTES = 60
+# Set SINGLE_POST to True if you want a single post - will disable images.
 SINGLE_POST = False
+# Set IMAGES to True if you want to send images. If SINGLE_POST is True, this will be ignored.
 IMAGES = False
 
 async def main():
@@ -20,14 +24,12 @@ async def main():
             return response.json()
 
     diochan = await get_last_threads_from_board('b')
-    # print(r)
     now = int(time.time())
-    # print(now)
-    
 
     delta_timestamp = 60 * MINUTES
     not_before = now - delta_timestamp
     threads = []
+
     for page in diochan:
         for thread in page['threads']:
             if thread['time'] > not_before:
@@ -37,19 +39,34 @@ async def main():
                     'time': thread['time'],
                     'title': thread.get('sub'),
                     'text': thread['com'],
-                    'image_url': f"https://www.diochan.com/b/src/{thread['tim']}{thread['ext']}",
-                    'thread_url' : f"https://www.diochan.com/b/res/{thread['no']}.html"
+                    'image_url': f"https://www.diochan.com/{thread['board']}/src/{thread['tim']}{thread['ext']}",
+                    'thread_url' : f"https://www.diochan.com/{thread['board']}/res/{thread['no']}.html"
                 }
                 threads.append(t)
     
-    # print(threads)
-    # print(len(threads))
+
     bot = Bot(token=config.BOT_TOKEN)
-    for thread in threads:
-        caption = f"{thread['thread_url']}\n{thread['text']}"
-        image_url = thread['image_url']
-        await bot.send_message(chat_id=config.ID_DIOCHAN2, text=caption, parse_mode='HTML')
-        # await bot.send_photo(chat_id=config.ID_DIOCHAN2, photo=image_url, caption=caption)
+
+    if SINGLE_POST:
+        message = ''
+        for thread in threads:
+            message += f"{thread['thread_url']}\n{thread['text']}\n\n"
+        await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML')
+    
+    else:
+        for thread in threads:
+            caption = f"{thread['thread_url']}\n{thread['text']}"
+            image_url = thread['image_url']
+
+            if IMAGES:
+                try:
+                    await bot.send_photo(chat_id=DESTINATION_CHAT, photo=image_url, caption=caption)
+
+                # We catch everything, because we don't want to stop the bot if something goes wrong.
+                except Exception as e: 
+                    await bot.send_message(chat_id=DESTINATION_CHAT, text=caption, parse_mode='HTML')
+            else:
+                await bot.send_message(chat_id=DESTINATION_CHAT, text=caption, parse_mode='HTML')
 
 if __name__ == '__main__':
     asyncio.run(main())
