@@ -1,6 +1,8 @@
 import httpx
 import asyncio
 import time
+import html
+import datetime
 from telegram import Bot
 
 import config
@@ -14,15 +16,17 @@ SINGLE_POST = config.SINGLE_POST
 IMAGES = config.IMAGES
 BOARDS = config.BOARDS
 
+
 async def main():
     async def get_last_threads_from_board(board):
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(f'https://www.diochan.com/{board}/catalog.json')
             response.raise_for_status()
             return response.json()
 
     diochan = {}
     for board in BOARDS:
+        print(f"Getting threads from {board}")
         diochan[board] = await get_last_threads_from_board(board)
     now = int(time.time())
 
@@ -34,16 +38,23 @@ async def main():
         for page in diochan[board]:
             for thread in page['threads']:
                 if thread['time'] > not_before:
-                    print(thread)
+                    # print(thread)
                     t = {
                         'board': board,
                         'thread': thread['no'],
                         'time': thread['time'],
                         'title': thread.get('sub'),
                         'text': thread['com'],
-                        'image_url': f"https://www.diochan.com/{board}/src/{thread['tim']}{thread['ext']}",
                         'thread_url' : f"https://www.diochan.com/{board}/res/{thread['no']}.html"
                     }
+                    if thread.get('tim'):
+                        t['image_url'] = f"https://www.diochan.com/{board}/src/{thread['tim']}{thread['ext']}"
+                        t['is_video'] = False
+                    elif thread.get('embed'):
+                        t['is_video'] = True
+                        youtube_id = thread['embed'].split('"')[11][39:]
+                        t['image_url'] = f'http://i3.ytimg.com/vi/{youtube_id}/hqdefault.jpg'
+                        t['video_url'] = f"https://www.youtube.com/watch?v={youtube_id}"
                     threads.append(t)
     
 
@@ -52,23 +63,35 @@ async def main():
     if SINGLE_POST:
         message = ''
         for thread in threads:
-            message += f"{thread['thread_url']}\n{thread['text']}\n\n"
+            timestamp = datetime.datetime.utcfromtimestamp(thread['time']).strftime('%d/%m/%Y %H:%M')
+            text = thread['text'].replace('<br/>','\n')
+            link = f"<a href='{thread['thread_url']}'>/{thread['board']}/ | No.{thread['thread']}</a> | {timestamp}"
+            if thread['is_video']:
+                link += f"\n<a href='{thread['video_url']}'>[YouTube]</a>"
+            message += f"{link}\n{text}\n\n"
         await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
     
     else:
         for thread in threads:
-            caption = f"{thread['thread_url']}\n{thread['text']}"
+            timestamp = datetime.datetime.utcfromtimestamp(thread['time']).strftime('%d/%m/%Y %H:%M')
+            text = thread['text'].replace('<br/>','\n')
+            link = f"<a href='{thread['thread_url']}'>/{thread['board']}/ | No.{thread['thread']}</a> | {timestamp}"
+            
+            if thread['is_video']:
+                link += f"\n<a href='{thread['video_url']}'>[YouTube]</a>"
+
+            message = f"{link}\n{text}"
             image_url = thread['image_url']
 
             if IMAGES:
                 try:
-                    await bot.send_photo(chat_id=DESTINATION_CHAT, photo=image_url, caption=caption)
+                    await bot.send_photo(chat_id=DESTINATION_CHAT, photo=image_url, caption=message, parse_mode='HTML')
 
-                # We catch everything, because we don't want to stop the bot if something goes wrong.
+                # We catch everything, because we don't want to stop the bot if something goes wrong. We send a basic text message.
                 except Exception as e: 
-                    await bot.send_message(chat_id=DESTINATION_CHAT, text=caption, parse_mode='HTML')
+                    await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
             else:
-                await bot.send_message(chat_id=DESTINATION_CHAT, text=caption, parse_mode='HTML')
+                await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
 
 if __name__ == '__main__':
     asyncio.run(main())

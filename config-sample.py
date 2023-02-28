@@ -11,7 +11,7 @@ MINUTES = 60
 SINGLE_POST = False
 
 # Set IMAGES to True if you want to send images. If SINGLE_POST is True, this will be ignored.
-IMAGES = False
+IMAGES = True
 
 # List of boards to check for new threads
 BOARDS = ['b', 'hd']
