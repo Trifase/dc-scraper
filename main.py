@@ -15,13 +15,15 @@ IMAGES = config.IMAGES
 BOARDS = config.BOARDS
 
 async def main():
-    async def get_last_threads_from_boards():
+    async def get_last_threads_from_board(board):
         async with httpx.AsyncClient() as client:
             response = await client.get(f'https://www.diochan.com/{board}/catalog.json')
             response.raise_for_status()
             return response.json()
 
-    diochan = await get_last_threads_from_boards()
+    diochan = {}
+    for board in BOARDS:
+        diochan[board] = await get_last_threads_from_board(board)
     now = int(time.time())
 
     delta_timestamp = 60 * MINUTES
@@ -29,17 +31,18 @@ async def main():
     threads = []
 
     for board in BOARDS:
-        for page in diochan:
+        for page in diochan[board]:
             for thread in page['threads']:
                 if thread['time'] > not_before:
+                    print(thread)
                     t = {
-                        'board': 'b',
+                        'board': board,
                         'thread': thread['no'],
                         'time': thread['time'],
                         'title': thread.get('sub'),
                         'text': thread['com'],
-                        'image_url': f"https://www.diochan.com/{thread['board']}/src/{thread['tim']}{thread['ext']}",
-                        'thread_url' : f"https://www.diochan.com/{thread['board']}/res/{thread['no']}.html"
+                        'image_url': f"https://www.diochan.com/{board}/src/{thread['tim']}{thread['ext']}",
+                        'thread_url' : f"https://www.diochan.com/{board}/res/{thread['no']}.html"
                     }
                     threads.append(t)
     
