@@ -1,7 +1,6 @@
 import httpx
 import asyncio
 import time
-import html
 import datetime
 from telegram import Bot
 
