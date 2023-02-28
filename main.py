@@ -58,23 +58,26 @@ async def main():
     
 
     bot = Bot(token=config.BOT_TOKEN)
-
     if SINGLE_POST:
         message = ''
         for thread in threads:
             timestamp = datetime.datetime.utcfromtimestamp(thread['time']).strftime('%d/%m/%Y %H:%M')
-            text = thread['text'].replace('<br/>','\n')
+            text = thread['text'].replace('<br/>','\n').replace('<span class="quote">&gt;','>').replace('</span>','')
+            if len(text) > 1000:
+                text = text[:1000] + "..."
             link = f"<a href='{thread['thread_url']}'>/{thread['board']}/ | No.{thread['thread']}</a> | {timestamp}"
             if thread['is_video']:
                 link += f"\n<a href='{thread['video_url']}'>[YouTube]</a>"
             message += f"{link}\n{text}\n\n"
         for chat_id in DESTINATION_CHATS:
-            await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
+            await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
     
     else:
         for thread in threads:
             timestamp = datetime.datetime.utcfromtimestamp(thread['time']).strftime('%d/%m/%Y %H:%M')
-            text = thread['text'].replace('<br/>','\n')
+            text = thread['text'].replace('<br/>','\n').replace('<span class="quote">&gt;','>').replace('</span>','')
+            if len(text) > 1000:
+                text = text[:1000] + "..."
             link = f"<a href='{thread['thread_url']}'>/{thread['board']}/ | No.{thread['thread']}</a> | {timestamp}"
             
             if thread['is_video']:
@@ -90,9 +93,10 @@ async def main():
 
                     # We catch everything, because we don't want to stop the bot if something goes wrong. We send a basic text message.
                     except Exception as e: 
-                        await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
+                        print(e)
+                        await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
                 else:
-                    await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
+                    await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
 
 if __name__ == '__main__':
     asyncio.run(main())
