@@ -9,7 +9,7 @@ import config
 
 
 BOT_TOKEN = config.BOT_TOKEN
-DESTINATION_CHAT = config.DESTINATION_CHAT
+DESTINATION_CHATS = config.DESTINATION_CHATS
 
 MINUTES = config.MINUTES
 SINGLE_POST = config.SINGLE_POST
@@ -26,7 +26,7 @@ async def main():
 
     diochan = {}
     for board in BOARDS:
-        print(f"Getting threads from {board}")
+        # print(f"Getting threads from {board}")
         diochan[board] = await get_last_threads_from_board(board)
     now = int(time.time())
 
@@ -69,7 +69,8 @@ async def main():
             if thread['is_video']:
                 link += f"\n<a href='{thread['video_url']}'>[YouTube]</a>"
             message += f"{link}\n{text}\n\n"
-        await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
+        for chat_id in DESTINATION_CHATS:
+            await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
     
     else:
         for thread in threads:
@@ -83,15 +84,16 @@ async def main():
             message = f"{link}\n{text}"
             image_url = thread['image_url']
 
-            if IMAGES:
-                try:
-                    await bot.send_photo(chat_id=DESTINATION_CHAT, photo=image_url, caption=message, parse_mode='HTML')
+            for chat_id in DESTINATION_CHATS:
+                if IMAGES:
+                    try:
+                        await bot.send_photo(chat_id=chat_id, photo=image_url, caption=message, parse_mode='HTML')
 
-                # We catch everything, because we don't want to stop the bot if something goes wrong. We send a basic text message.
-                except Exception as e: 
-                    await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
-            else:
-                await bot.send_message(chat_id=DESTINATION_CHAT, text=message, parse_mode='HTML', disable_web_page_preview=True)
+                    # We catch everything, because we don't want to stop the bot if something goes wrong. We send a basic text message.
+                    except Exception as e: 
+                        await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
+                else:
+                    await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=True)
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -1,8 +1,8 @@
 # Telegram bot token from botfather
 BOT_TOKEN = ''
 
-# Telegram chat id to send the messages to
-DESTINATION_CHAT = 0
+# Telegram chat ids to send the messages to
+DESTINATION_CHATS = [0, 0]
 
 # How many minutes to look back for new threads.
 MINUTES = 60
