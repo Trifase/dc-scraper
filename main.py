@@ -15,13 +15,13 @@ IMAGES = config.IMAGES
 BOARDS = config.BOARDS
 
 async def main():
-    async def get_last_threads_from_board():
+    async def get_last_threads_from_boards():
         async with httpx.AsyncClient() as client:
             response = await client.get(f'https://www.diochan.com/{board}/catalog.json')
             response.raise_for_status()
             return response.json()
 
-    diochan = await get_last_threads_from_board('b')
+    diochan = await get_last_threads_from_boards()
     now = int(time.time())
 
     delta_timestamp = 60 * MINUTES
